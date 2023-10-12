@@ -30,36 +30,44 @@ t_message parseMessage(char *msg)
 	return parsed_message;
 }
 
-// void threadInput(t_thread_vars *vars)
-// {
-// 	std::string msg = "";
-// 	vars->running_mutex.lock();
-// 	while (vars->is_running)
-// 	{
-// 		vars->running_mutex.unlock();
-// 		int c = getch();
-// 		switch (c)
-// 		{
-// 			case KEY_ENTER:
-// 				std::cin << msg;
-// 				msg = "";
-// 				break;
+void threadInput(t_thread_vars *vars)
+{
+	std::string msg_str = "";
+	vars->running_mutex.lock();
+	while (vars->is_running)
+	{
+		vars->running_mutex.unlock();
+		int c = getch();
+		switch (c)
+		{
+			case KEY_ENTER:
+				if (msg_str == COMMAND_EXIT)
+				{
+					vars->running_mutex.lock();
+					vars->is_running = false;
+					vars->running_mutex.unlock();
+					return;
+				}
+				if (send(vars->fd.fd, msg_str.c_str(), msg_str.length(), 0) == -1)
+						perror("send");
+				msg_str = "";
+				break;
 
-// 			case KEY_BACKSPACE:
-// 				if (msg.length() > 0)
-// 				{
-// 					msg.erase(msg.length() - 1);
-// 				}
-// 				break;
+			case KEY_BACKSPACE:
+				if (msg_str.length() > 0)
+				{
+					msg_str.erase(msg_str.length() - 1);
+				}
+				break;
 
-// 			default:
-// 				msg += (char)c;
-// 				printw("%c", c);
-// 				break;
-// 		}
-// 		vars->running_mutex.lock();
-// 	}
-// }
+			default:
+				msg_str += (char)c;
+				// printw("%c", c);
+				break;
+		}
+		vars->running_mutex.lock();
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -67,6 +75,8 @@ int main(int argc, char **argv)
 		displayHelp();
 	else
 	{
+		t_thread_vars thread_vars;
+		thread_vars.is_running = true;
 		int socket_client = socket(AF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in client_addr;
 		client_addr.sin_addr.s_addr = inet_addr(argv[1]);
@@ -77,84 +87,80 @@ int main(int argc, char **argv)
 			std::cout << "Error: cannot connect to server " << argv[1] << " on port " << argv[2] << "." << std::endl;
 			return 0;
 		}
-		// initscr();
+		initscr();
 		listen(socket_client, 1);
 
-		struct pollfd *pollfds = new struct pollfd[2];
-
-		pollfds[0].fd = socket_client;
-		pollfds[0].events = POLLIN;
-		pollfds[0].revents = 0;
-
-		pollfds[1].fd = 0;
-		pollfds[1].events = POLLIN;
-		pollfds[1].revents = 0;
+		thread_vars.fd.fd = socket_client;
+		thread_vars.fd.events = POLLIN;
+		thread_vars.fd.revents = 0;
 
 		char msg[160];
 		memset(msg, 0, 160);
-		while (true)
+
+		std::thread inputThread(threadInput, &thread_vars);
+		thread_vars.running_mutex.lock();
+		while (thread_vars.is_running)
 		{
-			if (poll(pollfds, 2, -1) == -1)
+			thread_vars.running_mutex.unlock();
+			if (poll(&thread_vars.fd, 1, -1) == -1)
 				perror("poll");
-			for (int i = 0; i < 2; ++i)
+			if((thread_vars.fd.revents & POLLIN) == POLLIN)
 			{
-				if((pollfds[i].revents & POLLIN) == POLLIN)
+				memset(msg, 0, 160);
+
+				int size = recv(thread_vars.fd.fd, &msg, sizeof(msg), 0);
+				if (size == -1)
+					perror("recv");
+				if (size == 0)
 				{
-					memset(msg, 0, 160);
-					if (i == 0)
+					std::cout << COLOR_SERVER << "You have been kicked of the server." << COLOR_RESET << std::endl;
+					close(socket_client);
+					endwin();
+					return 0;
+				}
+				else
+				{
+					t_message parsed_message = parseMessage(msg);
+					switch (parsed_message.type)
 					{
-						int size = recv(pollfds[i].fd, &msg, sizeof(msg), 0);
-						if (size == -1)
-							perror("recv");
-						if (size == 0)
-						{
-							std::cout << COLOR_SERVER << "You have been kicked of the server." << COLOR_RESET << std::endl;
-							close(socket_client);
-							// endwin();
-							return 0;
-						}
-						else
-						{
-							t_message parsed_message = parseMessage(msg);
-							switch (parsed_message.type)
-							{
-								case NO_TYPE: case TYPE_MESSAGE:
-									std::cout << parsed_message.message << std::endl;
-									break;
+						case NO_TYPE: case TYPE_MESSAGE:
+							// std::cout << parsed_message.message << std::endl;
+							printw("%s\n", parsed_message.message.c_str());
+							refresh();
+							break;
 
-								case TYPE_SERVER_MESSAGE:
-									std::cout << COLOR_SERVER << "SERVER: " << parsed_message.message << COLOR_RESET << std::endl;
-									break;
+						case TYPE_SERVER_MESSAGE:
+							std::cout << COLOR_SERVER << "SERVER: " << parsed_message.message << COLOR_RESET << std::endl;
+							break;
 
-								default:
-									break;
-							}
-						}
-					}
-					else
-					{
-						std::string tmp;
-						getline(std::cin, tmp);
-						if (tmp == COMMAND_EXIT)
-						{
-							close(socket_client);
-							// endwin();
-							return 0;
-						}
-
-						int i;
-						for(i = 0; tmp[i] && i < 158; i++)
-							msg[i] = tmp[i];
-						msg[i++] = '\n';
-						msg[i] = '\0';
-
-						if (send(pollfds[0].fd, &msg, strlen(msg), 0) == -1)
-							perror("send");
+						default:
+							break;
 					}
 				}
+				// else
+				// {
+				// 	std::string tmp;
+				// 	getline(std::cin, tmp);
+				// 	if (tmp == COMMAND_EXIT)
+				// 	{
+				// 		close(socket_client);
+				// 		endwin();
+				// 		return 0;
+				// 	}
+
+				// 	int i;
+				// 	for(i = 0; tmp[i] && i < 158; i++)
+				// 		msg[i] = tmp[i];
+				// 	msg[i++] = '\n';
+				// 	msg[i] = '\0';
+
+				// 	if (send(pollfds[0].fd, &msg, strlen(msg), 0) == -1)
+				// 		perror("send");
+				// }
 			}
+			thread_vars.running_mutex.lock();
 		}
 	}
-	// endwin();
+	endwin();
 	return 0;
 }

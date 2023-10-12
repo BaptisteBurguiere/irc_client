@@ -4,7 +4,7 @@ FLAGS=-Wall -Wextra -Werror -g
 SRCS=$(wildcard *.cpp) \
 
 ${NAME} :
-	$(CC) $(FLAGS) -Iincludes $(SRCS) -o $(NAME)
+	$(CC) $(FLAGS) -lncurses -lpthread -Iincludes $(SRCS) -o $(NAME)
 
 all : ${NAME}
 

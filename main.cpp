@@ -30,6 +30,37 @@ t_message parseMessage(char *msg)
 	return parsed_message;
 }
 
+// void threadInput(t_thread_vars *vars)
+// {
+// 	std::string msg = "";
+// 	vars->running_mutex.lock();
+// 	while (vars->is_running)
+// 	{
+// 		vars->running_mutex.unlock();
+// 		int c = getch();
+// 		switch (c)
+// 		{
+// 			case KEY_ENTER:
+// 				std::cin << msg;
+// 				msg = "";
+// 				break;
+
+// 			case KEY_BACKSPACE:
+// 				if (msg.length() > 0)
+// 				{
+// 					msg.erase(msg.length() - 1);
+// 				}
+// 				break;
+
+// 			default:
+// 				msg += (char)c;
+// 				printw("%c", c);
+// 				break;
+// 		}
+// 		vars->running_mutex.lock();
+// 	}
+// }
+
 int main(int argc, char **argv)
 {
 	if (argc != 3)
@@ -46,30 +77,84 @@ int main(int argc, char **argv)
 			std::cout << "Error: cannot connect to server " << argv[1] << " on port " << argv[2] << "." << std::endl;
 			return 0;
 		}
-		char msg[1024];
+		// initscr();
+		listen(socket_client, 1);
+
+		struct pollfd *pollfds = new struct pollfd[2];
+
+		pollfds[0].fd = socket_client;
+		pollfds[0].events = POLLIN;
+		pollfds[0].revents = 0;
+
+		pollfds[1].fd = 0;
+		pollfds[1].events = POLLIN;
+		pollfds[1].revents = 0;
+
+		char msg[160];
+		memset(msg, 0, 160);
 		while (true)
 		{
-			memset(msg, 0, strlen(msg));
-			if (recv(socket_client, &msg, 1024, 0) > 0)
+			if (poll(pollfds, 2, -1) == -1)
+				perror("poll");
+			for (int i = 0; i < 2; ++i)
 			{
-				t_message parsed_message = parseMessage(msg);
-
-				switch (parsed_message.type)
+				if((pollfds[i].revents & POLLIN) == POLLIN)
 				{
-					case NO_TYPE: case TYPE_MESSAGE:
-						std::cout << parsed_message.message << std::endl;
-						break;
+					memset(msg, 0, 160);
+					if (i == 0)
+					{
+						int size = recv(pollfds[i].fd, &msg, sizeof(msg), 0);
+						if (size == -1)
+							perror("recv");
+						if (size == 0)
+						{
+							std::cout << COLOR_SERVER << "You have been kicked of the server." << COLOR_RESET << std::endl;
+							close(socket_client);
+							// endwin();
+							return 0;
+						}
+						else
+						{
+							t_message parsed_message = parseMessage(msg);
+							switch (parsed_message.type)
+							{
+								case NO_TYPE: case TYPE_MESSAGE:
+									std::cout << parsed_message.message << std::endl;
+									break;
 
-					case TYPE_SERVER_MESSAGE:
-						std::cout << COLOR_SERVER << "SERVER: " << parsed_message.message << COLOR_RESET << std::endl;
-						break;
+								case TYPE_SERVER_MESSAGE:
+									std::cout << COLOR_SERVER << "SERVER: " << parsed_message.message << COLOR_RESET << std::endl;
+									break;
 
-					default:
-						break;
+								default:
+									break;
+							}
+						}
+					}
+					else
+					{
+						std::string tmp;
+						getline(std::cin, tmp);
+						if (tmp == COMMAND_EXIT)
+						{
+							close(socket_client);
+							// endwin();
+							return 0;
+						}
+
+						int i;
+						for(i = 0; tmp[i] && i < 158; i++)
+							msg[i] = tmp[i];
+						msg[i++] = '\n';
+						msg[i] = '\0';
+
+						if (send(pollfds[0].fd, &msg, strlen(msg), 0) == -1)
+							perror("send");
+					}
 				}
 			}
 		}
-		
 	}
+	// endwin();
 	return 0;
 }

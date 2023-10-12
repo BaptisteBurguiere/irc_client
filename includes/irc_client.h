@@ -10,6 +10,10 @@
 # include <stdlib.h>
 # include <unistd.h>
 # include <cstring>
+# include <thread>
+# include <mutex>
+# include <poll.h>
+# include <ncurses.h>
 
 # define SERVER_HEADER "__HEADER__"
 # define NO_TYPE -1
@@ -31,6 +35,12 @@ typedef struct s_message
 	std::string message;
 } t_message;
 
+typedef struct s_thread_vars
+{
+	struct pollfd fd;
+	bool is_running;
+	std::mutex running_mutex;
+} t_thread_vars;
 
 
 #endif

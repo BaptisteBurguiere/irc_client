@@ -170,6 +170,7 @@
 // }
 
 #include <View.h>
+#include <irc_client.h>
 
 int main(void)
 {
@@ -185,6 +186,11 @@ int main(void)
 		switch (c)
 		{
 			case ENTER:
+				if (input == COMMAND_EXIT)
+				{
+					view.destroy();
+					return 0;
+				}
 				if (input.length() > 0)
 				{
 					for (int i = 0; i < (int)input.length(); ++i)
@@ -225,6 +231,11 @@ int main(void)
 						break;
 					}
 				}
+				break;
+
+			case ESCAPE:
+				view.destroy();
+				return 0;
 				break;
 
 			default:

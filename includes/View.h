@@ -8,6 +8,7 @@
 # define RESIZE 410
 # define ENTER 10
 # define BACKSPACE 127
+# define ESCAPE 27
 
 class View
 {

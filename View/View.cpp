@@ -4,10 +4,34 @@ View::View(void) {}
 
 View::~View(void) {}
 
+View::View(const View &other)
+{
+	this->_chat_window = other._chat_window;
+	this->_input_window = other._input_window;
+	std::unique_lock<std::mutex> lock_other(other._mutex);
+}
+
+View &View::operator=(const View &other)
+{
+	this->_chat_window = other._chat_window;
+	this->_input_window = other._input_window;
+	std::unique_lock<std::mutex> lock_this(this->_mutex, std::defer_lock);
+    std::unique_lock<std::mutex> lock_other(other._mutex, std::defer_lock);
+    std::lock(lock_this, lock_other);
+    return *this;
+}
+
 void View::init(void)
 {
 	initscr();
 	noecho();
+	use_default_colors();
+
+	start_color();
+	init_pair(MESSAGE_COLOR, -1, -1);
+	init_pair(SERVER_COLOR, COLOR_RED, -1);
+	init_pair(DM_COLOR, COLOR_MAGENTA, -1);
+
 	this->_input_window = Window(CHAT_WINDOW_SIZE, COLS, LINES - CHAT_WINDOW_SIZE, 0);
 	this->_chat_window = Window(LINES - CHAT_WINDOW_SIZE - 1, COLS, 0, 0);
 	this->_input_window.display();
@@ -29,9 +53,9 @@ void View::displayInput(void)
 	this->_input_window.display();
 }
 
-void View::updateChannelName(std::string name)
+void View::updateChatTitle(std::string channel_name, std::string topic)
 {
-	this->_chat_window.setTitle(name);
+	this->_chat_window.setTitle(channel_name + " - " + topic);
 	this->_chat_window.refreshWindow();
 	this->_chat_window.display();
 }
@@ -95,4 +119,35 @@ void View::resize(void)
 
 	this->_input_window.display();
 	this->_chat_window.display();
+}
+
+void View::mutexLock(void)
+{
+	this->_mutex.lock();
+}
+
+void View::mutexUnlock(void)
+{
+	this->_mutex.unlock();
+}
+
+void View::writeInChat(std::string message, int color)
+{
+	attron(COLOR_PAIR(color));
+	for (int i = 0; i < (int)message.length(); ++i)
+	{
+		this->setCursorChat();
+		if (this->increaseCursorChat())
+			printw("%c", message[i]);
+		else
+			break;
+	}
+	attroff(COLOR_PAIR(color));
+	this->chatNewLine();
+	this->setCursorInput();
+}
+
+void View::printChar(char c)
+{
+	printw("%c", c);
 }

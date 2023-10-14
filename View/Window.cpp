@@ -29,6 +29,31 @@ Window::Window(int height, int width, int start_y, int start_x, std::string titl
 
 Window::~Window(void) {}
 
+Window::Window(const Window &other)
+{
+	this->_window = other._window;
+	this->_title = other._title;
+	this->_height = other._height;
+	this->_width = other._width;
+	this->_start_x = other._start_x;
+	this->_start_y = other._start_y;
+	this->_cursor_x = other._cursor_x;
+	this->_cursor_y = other._cursor_y;
+}
+
+Window &Window::operator=(const Window &other)
+{
+	this->_window = other._window;
+	this->_title = other._title;
+	this->_height = other._height;
+	this->_width = other._width;
+	this->_start_x = other._start_x;
+	this->_start_y = other._start_y;
+	this->_cursor_x = other._cursor_x;
+	this->_cursor_y = other._cursor_y;
+	return *this;
+}
+
 void Window::display(void)
 {
 	refresh();

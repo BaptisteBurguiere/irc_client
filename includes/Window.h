@@ -11,6 +11,9 @@ class Window
 		Window(int height, int width, int start_y, int start_x, std::string title = "");
 		~Window(void);
 
+		Window(const Window &other);
+		Window &operator=(const Window &other);
+
 		void display(void);
 		void refreshWindow(void);
 

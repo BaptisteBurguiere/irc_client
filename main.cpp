@@ -169,86 +169,116 @@
 // 	return 0;
 // }
 
-#include <View.h>
-#include <irc_client.h>
+// #include <View.h>
+// #include <irc_client.h>
 
-int main(void)
+// int main(void)
+// {
+// 	View view;
+// 	view.init();
+// 	view.updateChannelName("Better Client");
+
+// 	std::string input = "";
+// 	while (true)
+// 	{
+// 		view.setCursorInput();
+// 		int c = getch();
+// 		switch (c)
+// 		{
+// 			case ENTER:
+// 				if (input == COMMAND_EXIT)
+// 				{
+// 					view.destroy();
+// 					return 0;
+// 				}
+// 				if (input.length() > 0)
+// 				{
+// 					for (int i = 0; i < (int)input.length(); ++i)
+// 					{
+// 						view.setCursorChat();
+// 						if (view.increaseCursorChat())
+// 							printw("%c", input[i]);
+// 						else
+// 							break;
+// 					}
+// 					view.chatNewLine();
+// 					input = "";
+// 					view.displayInput();
+// 				}
+// 				break;
+
+// 			case BACKSPACE:
+// 				if (view.decreaseCursorInput())
+// 				{
+// 					input.erase(input.length() - 1);
+// 					view.setCursorInput();
+// 					printw(" ");
+// 				}
+// 				break;
+
+// 			case RESIZE:
+// 				view.resize();
+// 				view.displayInput();
+// 				view.displayChat();
+// 				for (int i = 0; i < (int)input.length(); ++i)
+// 				{
+// 					view.setCursorInput();
+// 					if (view.increaseCursorInput())
+// 						printw("%c", input[i]);
+// 					else
+// 					{
+// 						input.erase(i);
+// 						break;
+// 					}
+// 				}
+// 				break;
+
+// 			case ESCAPE:
+// 				view.destroy();
+// 				return 0;
+// 				break;
+
+// 			default:
+// 				if (view.increaseCursorInput())
+// 				{
+// 					printw("%c", c);
+// 					input += char(c);
+// 				}
+// 				break;
+// 		}
+// 	}
+
+
+// 	view.destroy();
+// 	return 0;
+// }
+
+#include <Model.h>
+#include <View.h> 
+#include <Controller.h>
+
+void displayHelp(void)
 {
-	View view;
-	view.init();
-	view.updateChannelName("Better Client");
+	std::cout << "better_client usage:" << std::endl;
+	std::cout << "./better_client <server_ip> <server_port>" << std::endl;
+}
 
-	std::string input = "";
-	while (true)
+int main(int argc, char **argv)
+{
+	if (argc != 3)
+		displayHelp();
+	else
 	{
-		view.setCursorInput();
-		int c = getch();
-		switch (c)
+		View view;
+		Model model;
+		Controller controller(model, view);
+		if (!controller.init(argv[1], argv[2]))
+			std::cout << "Error: cannot connect to server " << argv[1] << " on port " << argv[2] << "." << std::endl;
+		else
 		{
-			case ENTER:
-				if (input == COMMAND_EXIT)
-				{
-					view.destroy();
-					return 0;
-				}
-				if (input.length() > 0)
-				{
-					for (int i = 0; i < (int)input.length(); ++i)
-					{
-						view.setCursorChat();
-						if (view.increaseCursorChat())
-							printw("%c", input[i]);
-						else
-							break;
-					}
-					view.chatNewLine();
-					input = "";
-					view.displayInput();
-				}
-				break;
-
-			case BACKSPACE:
-				if (view.decreaseCursorInput())
-				{
-					input.erase(input.length() - 1);
-					view.setCursorInput();
-					printw(" ");
-				}
-				break;
-
-			case RESIZE:
-				view.resize();
-				view.displayInput();
-				view.displayChat();
-				for (int i = 0; i < (int)input.length(); ++i)
-				{
-					view.setCursorInput();
-					if (view.increaseCursorInput())
-						printw("%c", input[i]);
-					else
-					{
-						input.erase(i);
-						break;
-					}
-				}
-				break;
-
-			case ESCAPE:
-				view.destroy();
-				return 0;
-				break;
-
-			default:
-				if (view.increaseCursorInput())
-				{
-					printw("%c", c);
-					input += char(c);
-				}
-				break;
+			controller.mainLoop();
+			controller.destroy();
 		}
 	}
-
-
-	view.destroy();
 	return 0;
 }

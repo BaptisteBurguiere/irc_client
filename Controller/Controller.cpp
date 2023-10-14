@@ -30,13 +30,12 @@ bool Controller::init(std::string ip, std::string port)
 	this->_view.init();
 	this->_is_running = true;
 
-	t_thread_vars thread_vars;
-	thread_vars.socket_client = socket_client;
-	thread_vars.is_running = &this->_is_running;
-	thread_vars.running_mutex = &this->_running_mutex;
-	thread_vars.model = &this->_model;
-	thread_vars.view = &this->_view;
-	this->_input_thread = std::thread(Controller::inputThread, thread_vars);
+	this->thread_vars.socket_client = socket_client;
+	this->thread_vars.is_running = &this->_is_running;
+	this->thread_vars.running_mutex = &this->_running_mutex;
+	this->thread_vars.model = &this->_model;
+	this->thread_vars.view = &this->_view;
+	this->_input_thread = std::thread(Controller::inputThread, &this->thread_vars);
 	return true;
 }
 

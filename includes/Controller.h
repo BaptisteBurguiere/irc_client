@@ -61,6 +61,7 @@ class Controller
 		View _view;
 		bool _is_running;
 		std::mutex _running_mutex;
+		t_thread_vars thread_vars;
 		std::thread _input_thread;
 		struct pollfd _pollfd;
 

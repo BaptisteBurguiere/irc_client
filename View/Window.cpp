@@ -71,6 +71,11 @@ void Window::refreshWindow(void)
 	this->_window = newwin(this->_height, this->_width, this->_start_y, this->_start_x);
 }
 
+void Window::refresht(void)
+{
+	wrefresh(this->_window);
+}
+
 bool Window::increaseCursor(void)
 {
 	if (this->_cursor_x >= this->_width - 2)

@@ -9,6 +9,7 @@
 # define MESSAGE_COLOR 1
 # define SERVER_COLOR 2
 # define DM_COLOR 3
+# define TAB_SIZE 4
 
 class View
 {
@@ -34,14 +35,20 @@ class View
 		void setCursorChat(void);
 		bool increaseCursorChat(void);
 		bool chatNewLine(void);
+		bool isChatNewLine(void);
 
 		void resize(void);
 
 		void mutexLock(void);
 		void mutexUnlock(void);
 
-		void writeInChat(std::string message, int color);
+		bool writeInChat(std::string message, int color);
 		void printChar(char c);
+
+		void refresht(void);
+
+		int getChatHeight(void);
+		int getChatWidth(void);
 
 	private:
 		Window _chat_window;

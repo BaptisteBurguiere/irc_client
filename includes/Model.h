@@ -22,8 +22,11 @@ class Model
 
 		void init(void);
 
-		std::string getInput(void);
-		void setInput(std::string new_input);
+		std::string getInputHistoryAt(int pos);
+		t_message getChatHistoryAt(int pos);
+
+		// std::string getInput(void);
+		// void setInput(std::string new_input);
 
 		std::string getChannelName(void);
 		void setChannelName(std::string new_channel_name);
@@ -41,7 +44,7 @@ class Model
 		void mutexUnlock(void);
 
 	private:
-		std::string _input;
+		// std::string _input;
 		std::string _channel_name;
 		std::string _topic;
 		std::vector<std::string> _input_history;

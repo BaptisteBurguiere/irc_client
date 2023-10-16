@@ -24,8 +24,9 @@ View &View::operator=(const View &other)
 void View::init(void)
 {
 	initscr();
-	noecho();
 	use_default_colors();
+	// keypad(stdscr, true);
+	noecho();
 
 	start_color();
 	init_pair(MESSAGE_COLOR, -1, -1);
@@ -97,6 +98,14 @@ bool View::chatNewLine(void)
 	return true;
 }
 
+bool View::isChatNewLine(void)
+{
+	if (this->_chat_window.getCursorY() < this->_chat_window.getHeight() - 2)
+		return true;
+	else
+		return false;
+}
+
 void View::resize(void)
 {
 	clear();
@@ -131,23 +140,59 @@ void View::mutexUnlock(void)
 	this->_mutex.unlock();
 }
 
-void View::writeInChat(std::string message, int color)
+bool View::writeInChat(std::string message, int color)
 {
+	if (!this->isChatNewLine())
+		return false;
+	bool ret = true;
 	attron(COLOR_PAIR(color));
 	for (int i = 0; i < (int)message.length(); ++i)
 	{
 		this->setCursorChat();
 		if (this->increaseCursorChat())
-			printw("%c", message[i]);
+		{
+			if (message[i] == '\n')
+			{
+				if (!this->chatNewLine())
+				{
+					ret = false;
+					break;
+				}
+			}
+			else if (message[i] == '\t')
+			{
+				for (int i = 0; i < TAB_SIZE ; ++i)
+				{
+					if (!this->increaseCursorChat())
+					{
+						ret = false;
+						break;
+					}
+				}
+			}
+			else
+				printw("%c", message[i]);
+		}
 		else
+		{
+			ret = false;
 			break;
+		}
 	}
 	attroff(COLOR_PAIR(color));
 	this->chatNewLine();
 	this->setCursorInput();
+	return ret;
 }
 
 void View::printChar(char c)
 {
 	printw("%c", c);
+}
+
+void View::refresht(void)
+{
+	refresh();
+	// this->_input_window.refresht();
+	// this->_chat_window.refresht();
 }

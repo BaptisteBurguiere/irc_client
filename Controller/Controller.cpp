@@ -63,17 +63,40 @@ t_message Controller::parseMessage(char *msg)
 	return parsed_message;
 }
 
+void Controller::updateChat(void)
+{
+	static int history = 0;
+
+	this->_view.displayChat();
+	int temp = history;
+	t_message message = this->_model.getChatHistoryAt(temp);
+	while (message.type != TYPE_NO_MESSAGE)
+	{
+		if (!this->_view.writeInChat(message.message, message.type))
+		{
+			history++;
+			this->updateChat();
+			return;
+		}
+		temp++;
+		message = this->_model.getChatHistoryAt(temp);
+	}
+	history++;
+}
+
 void Controller::inputThread(t_thread_vars *vars)
 {
 	std::string input = "";
+	// int history = 0;
+	// std::string temp;
 	vars->running_mutex->lock();
-	while (*vars->is_running)
+	while (*(vars->is_running))
 	{
 		vars->running_mutex->unlock();
 
 		int c = getch();
 		vars->running_mutex->lock();
-		if (!(*vars->is_running))
+		if (!(*(vars->is_running)))
 		{
 			vars->running_mutex->unlock();
 			return;
@@ -86,18 +109,21 @@ void Controller::inputThread(t_thread_vars *vars)
 				if (input == COMMAND_EXIT)
 				{
 					vars->running_mutex->lock();
-					*vars->is_running = false;
+					*(vars->is_running) = false;
 					vars->running_mutex->unlock();
 					return;
 				}
 				else if (input.length() > 0)
 				{
+					// history = 0;
 					vars->model->addInputHistory(input);
 					if (send(vars->socket_client, input.c_str(), input.length(), 0) == -1)
  						perror("send");
  					input = "";
  					vars->view->mutexLock();
  					vars->view->displayInput();
+ 					vars->view->setCursorInput();
+ 					vars->view->refresht();
  					vars->view->mutexUnlock();
 				}
 				break;
@@ -109,13 +135,70 @@ void Controller::inputThread(t_thread_vars *vars)
 					input.erase(input.length() - 1);
 					vars->view->setCursorInput();
 					vars->view->printChar(' ');
+					vars->view->setCursorInput();
 				}
+				vars->view->refresht();
 				vars->view->mutexUnlock();
 				break;
 
+			// case ARROW_UP:
+			// 	vars->model->mutexLock();
+			// 	temp = vars->model->getInputHistoryAt(history);
+			// 	vars->model->mutexUnlock();
+			// 	if (temp != "")
+			// 	{
+			// 		input = temp;
+			// 		history++;
+
+			// 		vars->view->mutexLock();
+			// 		vars->view->displayInput();
+			// 		for (int i = 0; i < (int)input.length(); ++i)
+			// 		{
+			// 			vars->view->setCursorInput();
+			// 			if (vars->view->increaseCursorInput())
+			// 				vars->view->printChar(input[i]);
+			// 			else
+			// 			{
+			// 				input.erase(i);
+			// 				break;
+			// 			}
+			// 		}
+			// 		vars->view->refresht();
+			// 		vars->view->mutexUnlock();
+			// 	}
+			// 	break;
+
+			// case ARROW_DOWN:
+			// 	vars->model->mutexLock();
+			// 	temp = temp = vars->model->getInputHistoryAt(history);
+			// 	vars->model->mutexUnlock();
+			// 	if (temp != "")
+			// 	{
+			// 		input = temp;
+			// 		if (history > 0)
+			// 			history--;
+
+			// 		vars->view->mutexLock();
+			// 		vars->view->displayInput();
+			// 		for (int i = 0; i < (int)input.length(); ++i)
+			// 		{
+			// 			vars->view->setCursorInput();
+			// 			if (vars->view->increaseCursorInput())
+			// 				vars->view->printChar(input[i]);
+			// 			else
+			// 			{
+			// 				input.erase(i);
+			// 				break;
+			// 			}
+			// 		}
+			// 		vars->view->refresht();
+			// 		vars->view->mutexUnlock();
+			// 	}
+			// 	break;
+
 			case ESCAPE:
 				vars->running_mutex->lock();
-				*vars->is_running = false;
+				*(vars->is_running) = false;
 				vars->running_mutex->unlock();
 				return;
 				break;
@@ -136,6 +219,8 @@ void Controller::inputThread(t_thread_vars *vars)
 						break;
 					}
 				}
+				vars->view->setCursorInput();
+				vars->view->refresht();
 				vars->view->mutexUnlock();
 				break;
 
@@ -147,6 +232,7 @@ void Controller::inputThread(t_thread_vars *vars)
 					vars->view->printChar(c);
 					input += char(c);
 				}
+				vars->view->refresht();
 				vars->view->mutexUnlock();
 				break;
 		}
@@ -164,8 +250,8 @@ void Controller::mainLoop(void)
 	{
 		this->_running_mutex.unlock();
 
-		if (poll(&this->_pollfd, 1, -1) == -1)
-			perror("poll");
+		poll(&this->_pollfd, 1, 1);
+			// perror("poll");
 		if((this->_pollfd.revents & POLLIN) == POLLIN)
 		{
 			memset(msg, 0, MSG_SIZE);
@@ -176,6 +262,7 @@ void Controller::mainLoop(void)
 			{
 				this->_view.mutexLock();
 				this->_view.writeInChat("You have been kicked of the server.", SERVER_COLOR);
+				this->_view.refresht();
 				this->_view.mutexUnlock();
 				this->_running_mutex.lock();
 				this->_is_running = false;
@@ -190,25 +277,34 @@ void Controller::mainLoop(void)
 					case NO_TYPE: case TYPE_MESSAGE:
 						this->_model.mutexLock();
 						this->_model.addChatHistory(parsed_message);
-						this->_model.mutexUnlock();
 						this->_view.mutexLock();
-						this->_view.writeInChat(parsed_message.message, MESSAGE_COLOR);
+						if (!this->_view.writeInChat(parsed_message.message, MESSAGE_COLOR))
+							this->updateChat();
+						this->_view.refresht();
 						this->_view.mutexUnlock();
+						this->_model.mutexUnlock();
 						break;
 
 					case TYPE_SERVER_MESSAGE:
+						this->_model.mutexLock();
+						this->_model.addChatHistory(parsed_message);
 						this->_view.mutexLock();
-						this->_view.writeInChat("SERVER: " + parsed_message.message, SERVER_COLOR);
+						if (!this->_view.writeInChat(parsed_message.message, SERVER_COLOR))
+							this->updateChat();
+						this->_view.refresht();
 						this->_view.mutexUnlock();
+						this->_model.mutexUnlock();
 						break;
 
 					case TYPE_DM_MESSAGE:
 						this->_model.mutexLock();
 						this->_model.addChatHistory(parsed_message);
-						this->_model.mutexUnlock();
 						this->_view.mutexLock();
-						this->_view.writeInChat(parsed_message.message, DM_COLOR);
+						if (!this->_view.writeInChat(parsed_message.message, DM_COLOR))
+							this->updateChat();
+						this->_view.refresht();
 						this->_view.mutexUnlock();
+						this->_model.mutexUnlock();
 						break;
 
 					default:

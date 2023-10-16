@@ -20,8 +20,11 @@
 # define ENTER 10
 # define BACKSPACE 127
 # define ESCAPE 27
+# define ARROW_UP 279165
+# define ARROW_DOWN 279166
 
 # define SERVER_HEADER "__HEADER__"
+# define TYPE_NO_MESSAGE -2
 # define NO_TYPE -1
 # define TYPE_MESSAGE 0
 # define TYPE_SERVER_MESSAGE 1
@@ -41,8 +44,6 @@ class Controller
 		Controller(Model model, View view);
 		~Controller(void);
 
-		void destroy(void);
-
 		typedef struct s_thread_vars
 		{
 			int socket_client;
@@ -53,8 +54,9 @@ class Controller
 		} t_thread_vars;
 
 		bool init(std::string ip, std::string port);
-		void mainLoop(void);
+		void destroy(void);
 
+		void mainLoop(void);
 
 	private:
 		Model _model;
@@ -67,6 +69,7 @@ class Controller
 
 		static void inputThread(t_thread_vars *vars);
 		t_message parseMessage(char *msg);
+		void updateChat(void);
 };
 
 #endif

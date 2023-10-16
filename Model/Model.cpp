@@ -6,7 +6,7 @@ Model::~Model(void) {}
 
 Model::Model(const Model &other)
 {
-	this->_input = other._input;
+	// this->_input = other._input;
 	this->_channel_name = other._channel_name;
 	this->_topic = other._topic;
 	this->_input_history = other._input_history;
@@ -16,7 +16,7 @@ Model::Model(const Model &other)
 
 Model &Model::operator=(const Model &other)
 {
-	this->_input = other._input;
+	// this->_input = other._input;
 	this->_channel_name = other._channel_name;
 	this->_topic = other._topic;
 	this->_input_history = other._input_history;
@@ -29,13 +29,40 @@ Model &Model::operator=(const Model &other)
 
 void Model::init(void)
 {
-	this->_input = "";
+	// this->_input = "";
 	this->_channel_name = "";
 	this->_topic = "";
 }
 
-std::string Model::getInput(void) {return this->_input;}
-void Model::setInput(std::string new_input) {this->_input = new_input;}
+std::string Model::getInputHistoryAt(int pos)
+{
+	int j = 0;
+	for (std::vector<std::string>::reverse_iterator i = this->_input_history.rbegin(); i != this->_input_history.rend(); ++i)
+	{
+		if (j == pos)
+			return *i;
+		j++;
+	}
+	return "";
+}
+
+t_message Model::getChatHistoryAt(int pos)
+{
+	int j = 0;
+	for (std::vector<t_message>::iterator i = this->_chat_history.begin(); i != this->_chat_history.end(); ++i)
+	{
+		if (j == pos)
+			return *i;
+		j++;
+	}
+	t_message new_message;
+	new_message.type = -2;
+	new_message.message = "";
+	return new_message;
+}
+
+// std::string Model::getInput(void) {return this->_input;}
+// void Model::setInput(std::string new_input) {this->_input = new_input;}
 
 std::string Model::getChannelName(void) {return this->_channel_name;}
 void Model::setChannelName(std::string new_channel_name) {this->_channel_name = new_channel_name;}

@@ -16,6 +16,7 @@ class Window
 
 		void display(void);
 		void refreshWindow(void);
+		void refresht(void);
 
 		bool increaseCursor(void);
 		bool decreaseCursor(void);

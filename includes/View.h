@@ -11,6 +11,12 @@
 # define DM_COLOR 3
 # define TAB_SIZE 4
 
+# define TYPE_NO_MESSAGE -2
+# define NO_TYPE -1
+# define TYPE_MESSAGE 0
+# define TYPE_SERVER_MESSAGE 1
+# define TYPE_DM_MESSAGE 2
+
 class View
 {
 	public:
@@ -42,7 +48,7 @@ class View
 		void mutexLock(void);
 		void mutexUnlock(void);
 
-		bool writeInChat(std::string message, int color);
+		bool writeInChat(std::string message, int type);
 		void printChar(char c);
 
 		void refresht(void);

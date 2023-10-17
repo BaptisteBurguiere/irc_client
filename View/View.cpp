@@ -140,11 +140,32 @@ void View::mutexUnlock(void)
 	this->_mutex.unlock();
 }
 
-bool View::writeInChat(std::string message, int color)
+bool View::writeInChat(std::string message, int type)
 {
 	if (!this->isChatNewLine())
 		return false;
+
 	bool ret = true;
+	int color;
+	switch (type)
+	{
+		case NO_TYPE: case TYPE_MESSAGE:
+			color = MESSAGE_COLOR;
+			break;
+
+		case TYPE_SERVER_MESSAGE:
+			color = SERVER_COLOR;
+			break;
+
+		case TYPE_DM_MESSAGE:
+			color = DM_COLOR;
+			break;
+
+		default:
+			color = MESSAGE_COLOR;
+			break;
+	}
+
 	attron(COLOR_PAIR(color));
 	for (int i = 0; i < (int)message.length(); ++i)
 	{

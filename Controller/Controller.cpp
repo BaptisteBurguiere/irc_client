@@ -260,10 +260,17 @@ void Controller::mainLoop(void)
 				perror("recv");
 			else if (size == 0)
 			{
+				t_message new_message;
+				new_message.message = "You have been kicked of the server.";
+				new_message.type = TYPE_SERVER_MESSAGE;
+				this->_model.mutexLock();
+				this->_model.addChatHistory(new_message);
 				this->_view.mutexLock();
-				this->_view.writeInChat("You have been kicked of the server.", SERVER_COLOR);
+				if (!this->_view.writeInChat(new_message.message, new_message.type))
+					this->updateChat();
 				this->_view.refresht();
 				this->_view.mutexUnlock();
+				this->_model.mutexUnlock();
 				this->_running_mutex.lock();
 				this->_is_running = false;
 				this->_running_mutex.unlock();
@@ -272,44 +279,14 @@ void Controller::mainLoop(void)
 			else
 			{
 				t_message parsed_message = parseMessage(msg);
-				switch (parsed_message.type)
-				{
-					case NO_TYPE: case TYPE_MESSAGE:
-						this->_model.mutexLock();
-						this->_model.addChatHistory(parsed_message);
-						this->_view.mutexLock();
-						if (!this->_view.writeInChat(parsed_message.message, MESSAGE_COLOR))
-							this->updateChat();
-						this->_view.refresht();
-						this->_view.mutexUnlock();
-						this->_model.mutexUnlock();
-						break;
-
-					case TYPE_SERVER_MESSAGE:
-						this->_model.mutexLock();
-						this->_model.addChatHistory(parsed_message);
-						this->_view.mutexLock();
-						if (!this->_view.writeInChat(parsed_message.message, SERVER_COLOR))
-							this->updateChat();
-						this->_view.refresht();
-						this->_view.mutexUnlock();
-						this->_model.mutexUnlock();
-						break;
-
-					case TYPE_DM_MESSAGE:
-						this->_model.mutexLock();
-						this->_model.addChatHistory(parsed_message);
-						this->_view.mutexLock();
-						if (!this->_view.writeInChat(parsed_message.message, DM_COLOR))
-							this->updateChat();
-						this->_view.refresht();
-						this->_view.mutexUnlock();
-						this->_model.mutexUnlock();
-						break;
-
-					default:
-						break;
-				}
+				this->_model.mutexLock();
+				this->_model.addChatHistory(parsed_message);
+				this->_view.mutexLock();
+				if (!this->_view.writeInChat(parsed_message.message, parsed_message.type))
+					this->updateChat();
+				this->_view.refresht();
+				this->_view.mutexUnlock();
+				this->_model.mutexUnlock();
 			}
 		}
 		this->_running_mutex.lock();

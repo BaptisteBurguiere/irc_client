@@ -56,7 +56,17 @@ void View::displayInput(void)
 
 void View::updateChatTitle(std::string channel_name, std::string topic)
 {
-	this->_chat_window.setTitle(channel_name + " - " + topic);
+	std::string title = "";
+	if (channel_name != "")
+	{
+		title = channel_name;
+		if (topic != "")
+			title += " - " + topic;
+	}
+	else if (topic != "")
+		title = topic;
+
+	this->_chat_window.setTitle(title);
 	this->_chat_window.refreshWindow();
 	this->_chat_window.display();
 }

@@ -29,10 +29,8 @@
 # define TYPE_MESSAGE 0
 # define TYPE_SERVER_MESSAGE 1
 # define TYPE_DM_MESSAGE 2
-// # define TYPE_DISCONNECT 2
-// # define TYPE_USERNAME 3
-// # define TYPE_NEW_USER 4
-// # define TYPE_INCORRECT_PASSWORD 5
+# define TYPE_CHANNEL_MESSAGE 3
+# define TYPE_TOPIC_MESSAGE 4
 
 # define COMMAND_EXIT "EXIT"
 
@@ -69,7 +67,7 @@ class Controller
 
 		static void inputThread(t_thread_vars *vars);
 		t_message parseMessage(char *msg);
-		void updateChat(void);
+		void updateChat(bool mode);
 };
 
 #endif

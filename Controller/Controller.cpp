@@ -43,7 +43,7 @@ t_message Controller::parseMessage(char *msg)
 {
 	t_message parsed_message;
 	std::string str_msg(msg);
-	str_msg.erase(str_msg.length() - 1);
+	// str_msg.erase(str_msg.length() - 1);
 
 	if (str_msg.find(SERVER_HEADER) != std::string::npos)
 	{
@@ -63,7 +63,7 @@ t_message Controller::parseMessage(char *msg)
 	return parsed_message;
 }
 
-void Controller::updateChat(void)
+void Controller::updateChat(bool mode)
 {
 	static int history = 0;
 
@@ -75,13 +75,14 @@ void Controller::updateChat(void)
 		if (!this->_view.writeInChat(message.message, message.type))
 		{
 			history++;
-			this->updateChat();
+			this->updateChat(true);
 			return;
 		}
 		temp++;
 		message = this->_model.getChatHistoryAt(temp);
 	}
-	history++;
+	if (mode)
+		history++;
 }
 
 void Controller::inputThread(t_thread_vars *vars)
@@ -267,7 +268,7 @@ void Controller::mainLoop(void)
 				this->_model.addChatHistory(new_message);
 				this->_view.mutexLock();
 				if (!this->_view.writeInChat(new_message.message, new_message.type))
-					this->updateChat();
+					this->updateChat(true);
 				this->_view.refresht();
 				this->_view.mutexUnlock();
 				this->_model.mutexUnlock();
@@ -279,14 +280,39 @@ void Controller::mainLoop(void)
 			else
 			{
 				t_message parsed_message = parseMessage(msg);
-				this->_model.mutexLock();
-				this->_model.addChatHistory(parsed_message);
-				this->_view.mutexLock();
-				if (!this->_view.writeInChat(parsed_message.message, parsed_message.type))
-					this->updateChat();
-				this->_view.refresht();
-				this->_view.mutexUnlock();
-				this->_model.mutexUnlock();
+				if (parsed_message.type == TYPE_CHANNEL_MESSAGE)
+				{
+					this->_model.mutexLock();
+					this->_model.setChannelName(parsed_message.message);
+					this->_view.mutexLock();
+					this->_view.updateChatTitle(this->_model.getChannelName(), this->_model.getTopic());
+					this->updateChat(false);
+					this->_view.refresht();
+					this->_model.mutexUnlock();
+					this->_view.mutexUnlock();
+				}
+				else if (parsed_message.type == TYPE_TOPIC_MESSAGE)
+				{
+					this->_model.mutexLock();
+					this->_model.setTopic(parsed_message.message);
+					this->_view.mutexLock();
+					this->_view.updateChatTitle(this->_model.getChannelName(), this->_model.getTopic());
+					this->updateChat(false);
+					this->_view.refresht();
+					this->_model.mutexUnlock();
+					this->_view.mutexUnlock();
+				}
+				else
+				{	
+					this->_model.mutexLock();
+					this->_model.addChatHistory(parsed_message);
+					this->_view.mutexLock();
+					if (!this->_view.writeInChat(parsed_message.message, parsed_message.type))
+						this->updateChat(true);
+					this->_view.refresht();
+					this->_view.mutexUnlock();
+					this->_model.mutexUnlock();
+				}
 			}
 		}
 		this->_running_mutex.lock();
